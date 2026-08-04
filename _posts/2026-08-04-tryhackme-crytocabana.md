@@ -2,7 +2,7 @@
 layout: post
 title: "CryptoCabana — TryHackMe (Hacker Holidays 2026)"
 date: 2026-08-04
-categories: [ctf, cloud, azure]
+categories: [CTF, TryHackMe]
 tags: [azure, sas-token, key-vault, blob-storage, tryhackme, service-principal]
 ---
 

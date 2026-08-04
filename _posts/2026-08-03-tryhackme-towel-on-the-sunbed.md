@@ -2,7 +2,7 @@
 title: "Towel on the Sunbed — TryHackMe Writeup"
 event: "Hacker Holidays 2026"
 difficulty: "Medium"
-category: "Web"
+category: [CTF, TryHackMe]
 tags: [race-condition, toctou, web-security, tryhackme, ctf]
 ---
 
