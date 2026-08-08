@@ -1,7 +1,7 @@
 ---
 layout: page
 title: About
-icon: fas fill-info-circle
+icon: fas fa-info-circle
 order: 4
 ---
 
