@@ -2,7 +2,7 @@
 title: "Management Wants a Word"
 date: 2026-08-09 15:42:00 -0400
 description: "Análisis forense de un triage KAPE de Windows: extracción de credenciales de Chrome mediante DPAPI, descifrado de contenedores VeraCrypt y recuperación de evidencia oculta."
-categories: [TryHackMe, Hacker Holidays]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [Forensics, Windows, DPAPI, Chrome, VeraCrypt, Cryptography, Hard]
 ---
 
