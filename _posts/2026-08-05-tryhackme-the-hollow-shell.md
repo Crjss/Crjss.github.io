@@ -2,7 +2,7 @@
 layout: post
 title: "The Hollow Shell"
 date: 2026-08-05
-categories: [TryHackMe, Hacer Holidays 2026]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [web, zip-slip, rce, flask, python, medium]
 ---
 
