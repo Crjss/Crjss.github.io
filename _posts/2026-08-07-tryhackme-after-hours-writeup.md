@@ -1,5 +1,5 @@
 ---
-title: "After Hours - Hacker Holidays 2026"
+title: "After Hours"
 date: 2026-08-07 13:40:00 -0400
 description: "Análisis forense de persistencia WMI oculta en el repositorio CIM de Windows, extracción de assembly .NET embebido y reverse engineering para obtener la flag."
 categories: [TryHackMe, Hacker Holidays 2026]

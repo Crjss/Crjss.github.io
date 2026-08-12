@@ -2,7 +2,7 @@
 title: "Packed Light"
 date: 2026-07-30 09:30:00 -0400
 description: "Análisis forense de tráfico de red para descubrir un canal encubierto (covert channel) que exfiltra datos byte a byte mediante cookies HTTP cifradas con XOR, resuelto mediante un Known-Plaintext Attack."
-categories: [TryHackMe, Hacker Holidays]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [forensics, pcap, covert-channel, xor, known-plaintext-attack, tshark, python, easy]
 ---
 

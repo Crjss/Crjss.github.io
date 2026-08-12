@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Infinity Pool - TryHackMe (Hacker Holidays 2026)"
+title: "Infinity Pool"
 date: 2026-08-06 12:00:00 -0400
-categories: [CTF, tryhackme, boot2root]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [command-injection, ssrf, freepbx, cve-2026-46376, privilege-escalation]
 excerpt: "De un botón deshabilitado en la web de un hotel a root, pasando por una inyección de comandos en un endpoint de 'ping', una API interna con Bearer token expuesta en un buzón de voz, y una CVE de 2026 en FreePBX."
 ---

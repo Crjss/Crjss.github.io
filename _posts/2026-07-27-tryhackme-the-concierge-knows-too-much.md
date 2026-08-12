@@ -2,7 +2,7 @@
 title: "The Concierge Knows Too Much"
 date: 2026-07-27 08:53:00 -0400
 description: "Análisis de un CTF de AI/LLM en TryHackMe donde se explota un prompt injection para extraer un escalation code mediante impersonación de un huésped VIP."
-categories: [TryHackMe, Hacker Holiday]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [AI, LLM, Prompt Injection, Social Engineering, Socialite, Very Easy]
 ---
 

@@ -2,7 +2,7 @@
 title: "Beach Bar"
 date: 2026-07-31 09:34:00 -0400
 description: "Explotación de deserialización YAML insegura en una jukebox web para obtener RCE, seguida de escalada de privilegios mediante credenciales expuestas en argumentos de un proceso root."
-categories: [TryHackMe, Hacker Holidays]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [YAML Deserialization, Credential Reuse, Boot2Root, Easy, Python, Flask]
 ---
 

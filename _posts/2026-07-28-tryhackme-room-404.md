@@ -1,8 +1,8 @@
 ---
-title: "Room 404 - Hacker Holidays"
+title: "Room 404"
 date: 2026-07-28 09:05:00 -0400
 description: "Writeup de la sala Room 404 del evento Hacker Holidays en TryHackMe. Explotación de un directorio .git expuesto para dumpear el código fuente y recuperar la flag."
-categories: [TryHackMe, Hacker Holidays]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [Web, Git Exposure, Directory Enumeration, Gobuster, Very Easy]
 ---
 

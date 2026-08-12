@@ -2,7 +2,7 @@
 title: "Overheard at Breakfast"
 date: 2026-08-01 09:40:00 -0400
 description: "Writeup del reto OSINT 'Overheard at Breakfast' del evento Hacker Holidays en TryHackMe, donde una conversación aparentemente inocua revela pistas que conducen a un perfil oculto en Gravatar."
-categories: [TryHackMe, Hacker Holidays]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [OSINT, Gravatar, Social Engineering, Easy, Hacker Holidays]
 ---
 

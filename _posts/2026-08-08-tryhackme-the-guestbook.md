@@ -1,5 +1,5 @@
 ---
-title: "The GuestBook - TryHackMe (Hacker Holidays 2026)"
+title: "The GuestBook"
 date: 2026-08-08 18:11:00 -0400
 description: "Solución del reto The GuestBook mediante Indirect Prompt Injection contra el agente AI VERA, explotando su memoria cross-entry para ejecutar comandos privilegiados y extraer la flag."
 categories: [TryHackMe, Hacker Holidays 2026]

@@ -2,7 +2,7 @@
 title: "Complimentary"
 date: 2026-07-29 09:11:00 -0400
 description: "Análisis de una aplicación wellness que otorga credenciales AWS Cognito sin autenticación, permitiendo el acceso no autorizado a una tabla DynamoDB completa mediante un rol IAM sobre-permisado."
-categories: [TryHackMe, Hacker Holidays]
+categories: [TryHackMe, Hacker Holidays 2026]
 tags: [AWS, Cognito, DynamoDB, IAM, Cloud, Easy, Hacker Holidays 2026]
 ---
 
