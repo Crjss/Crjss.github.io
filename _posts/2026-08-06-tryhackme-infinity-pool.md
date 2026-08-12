@@ -1,6 +1,6 @@
 ---
 title: "Infinity Pool"
-date: 2026-08-07 05:30:00 -0400
+date: 2026-08-06 05:30:00 -0400
 description: "Boot2Root de TryHackMe donde una inyección de comandos en un formulario de 'ping' escala hasta root explotando una CVE real de FreePBX (credenciales de plantilla hardcodeadas) y una segunda inyección de comandos en una API interna."
 categories: [TryHackMe, Hacker Holidays 2026]
 tags: [command-injection, freepbx, cve-2026-46376, privilege-escalation, boot2root, medium]
