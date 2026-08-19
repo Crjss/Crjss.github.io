@@ -7,7 +7,7 @@ tags: [RSA, Fermat, Cryptography, SSH, Python, Facil]
 math: true
 ---
 
-> **Ficha Tecnica**
+> 📌 **Ficha Tecnica**
 > - **Plataforma:** TryHackMe
 > - **Evento/Sala:** Cyber Security 101 — Breaking RSA
 > - **Dificultad:** Facil
