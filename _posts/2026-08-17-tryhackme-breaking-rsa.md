@@ -4,23 +4,25 @@ date: 2026-08-17 17:25:00 -0400
 description: "Analisis y explotacion de una implementacion debil de RSA donde los primos p y q son cercanos, permitiendo la factorizacion mediante el Metodo de Fermat para obtener la clave privada y acceder al sistema."
 categories: [TryHackMe, Cyber Security 101]
 tags: [RSA, Fermat, Cryptography, SSH, Python, Facil]
+math: true
 ---
 
-> :pushpin: **Ficha Tecnica**
+> **Ficha Tecnica**
 > - **Plataforma:** TryHackMe
 > - **Evento/Sala:** Cyber Security 101 — Breaking RSA
 > - **Dificultad:** Facil
 > - **Categoria:** Cryptography / Boot2Root
 > - **Tecnicas Clave:** Reconocimiento de servicios, enumeracion web, extraccion de clave publica RSA, factorizacion de Fermat, generacion de clave privada, acceso SSH
+{: .prompt-info }
 
 ---
 
 ## Introduccion
 
-Este writeup documenta la resolucion de la sala **Breaking RSA** de TryHackMe, perteneciente a la ruta *Cyber Security 101*. La sala simula un escenario donde la organizacion **JackFruit** utiliza una libreria criptografica obsoleta que genera claves RSA de forma insegura: los primos `p` y `q` elegidos para construir el modulo `n = p x q` son **muy cercanos entre si**. Esta debilidad permite factorizar `n` mediante el **Metodo de Factorizacion de Fermat** y, a partir de `p` y `q`, reconstruir la clave privada completa.
+Este writeup documenta la resolucion de la sala **Breaking RSA** de TryHackMe, perteneciente a la ruta *Cyber Security 101*. La sala simula un escenario donde la organizacion **JackFruit** utiliza una libreria criptografica obsoleta que genera claves RSA de forma insegura: los primos `p` y `q` elegidos para construir el modulo `n = p \times q` son **muy cercanos entre si**. Esta debilidad permite factorizar `n` mediante el **Metodo de Factorizacion de Fermat** y, a partir de `p` y `q`, reconstruir la clave privada completa.
 
 > El objetivo no es solo obtener la flag, sino entender **por que** la proximidad de los primos destruye la seguridad de RSA.
-{: .prompt-info }
+{: .prompt-tip }
 
 ---
 
@@ -146,13 +148,13 @@ El numero decimal resultante termina en: `...1225222383`.
 
 ### Por que funciona?
 
-La seguridad de RSA se basa en la dificultad practica de factorizar `n = p x q` cuando `p` y `q` son primos grandes y **aleatorios**. Sin embargo, si ambos primos son **cercanos entre si**, existe una debilidad matematica explotable.
+La seguridad de RSA se basa en la dificultad practica de factorizar $n = p \times q$ cuando $p$ y $q$ son primos grandes y **aleatorios**. Sin embargo, si ambos primos son **cercanos entre si**, existe una debilidad matematica explotable.
 
 La identidad algebraica clave es:
 
 $$a^2 - b^2 = (a + b)(a - b)$$
 
-Si reescribimos `n` como una diferencia de cuadrados:
+Si reescribimos $n$ como una diferencia de cuadrados:
 
 $$n = a^2 - b^2$$
 
@@ -160,9 +162,9 @@ Entonces:
 - $p = a + b$
 - $q = a - b$
 
-El **Metodo de Fermat** busca el primer entero $a > \sqrt{n}$ tal que $a^2 - n$ sea un **cuadrado perfecto** ($b^2$). Cuando `p` y `q` estan cercanos, su promedio $a = (p+q)/2$ esta muy cerca de $\sqrt{n}$, y su diferencia $b = (p-q)/2$ es pequena. Por tanto, el algoritmo converge en **pocas iteraciones**.
+El **Metodo de Fermat** busca el primer entero $a > \sqrt{n}$ tal que $a^2 - n$ sea un **cuadrado perfecto** ($b^2$). Cuando $p$ y $q$ estan cercanos, su promedio $a = (p+q)/2$ esta muy cerca de $\sqrt{n}$, y su diferencia $b = (p-q)/2$ es pequena. Por tanto, el algoritmo converge en **pocas iteraciones**.
 
-> :warning: En una implementacion correcta de RSA, `p` y `q` se eligen con una diferencia de miles de bits, haciendo que Fermat requiera millones de iteraciones y sea computacionalmente inviable.
+> En una implementacion correcta de RSA, $p$ y $q$ se eligen con una diferencia de miles de bits, haciendo que Fermat requiera millones de iteraciones y sea computacionalmente inviable.
 {: .prompt-warning }
 
 ---
@@ -218,8 +220,7 @@ print(f"[+] Ultimos 10 digitos de n: {str(n)[-10:]}")
 print(f"[+] e = {e}")
 
 # Factorizar n
-print("
-[*] Factorizando n con Fermat...")
+print("\n[*] Factorizando n con Fermat...")
 p, q = factorize(n)
 
 print(f"[+] p = {p}")
@@ -240,8 +241,7 @@ with open("id_rsa", "wb") as f:
 print("[+] Clave privada guardada en 'id_rsa'")
 ```
 
-> **Nota sobre la correccion:** En algunas versiones de `pycryptodome`, los objetos de `gmpy2` pueden causar errores de tipo. Por ello, es necesario convertirlos explicitamente a `int` nativo de Python al construir la clave:
-> `RSA.construct((int(n), int(e), int(d), int(p), int(q)))`
+> **Nota sobre la correccion:** En algunas versiones de `pycryptodome`, los objetos de `gmpy2` pueden causar errores de tipo. Por ello, es necesario convertirlos explicitamente a `int` nativo de Python al construir la clave: `RSA.construct((int(n), int(e), int(d), int(p), int(q)))`
 {: .prompt-tip }
 
 ### Ejecucion
@@ -313,3 +313,4 @@ La sala **Breaking RSA** es un excelente ejercicio introductorio para comprender
 ---
 
 *Writeup redactado con fines educativos. Practica unicamente en entornos autorizados.*
+
