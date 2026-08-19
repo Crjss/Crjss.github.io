@@ -2,13 +2,13 @@
 title: "Dig Dug"
 date: 2026-08-15 21:53:00 -0400
 description: "Enumeración DNS contra un servidor configurado de forma no estándar, descubriendo una flag oculta en un registro TXT mediante consultas directas con dig."
-categories: [TryHackMe, Dig Dug]
+categories: [TryHackMe, Cyber Security 101]
 tags: [DNS, dig, enumeration, fácil, CTF]
 ---
 
 > 📌 **Ficha Técnica**
 > - **Plataforma:** TryHackMe
-> - **Evento/Sala:** Dig Dug
+> - **Evento/Sala:** Cyber Security 101 — Dig Dug
 > - **Dificultad:** Fácil
 > - **Categoría:** OSINT / Reconocimiento
 > - **Técnicas Clave:** Enumeración DNS, consulta directa a servidor DNS autoritativo, análisis de registros TXT, intento de transferencia de zona (AXFR)
