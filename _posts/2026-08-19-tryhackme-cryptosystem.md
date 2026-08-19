@@ -1,5 +1,5 @@
 ---
-title: "Cryptosystem - TryHackMe"
+title: "Cryptosystem"
 date: 2026-08-19 16:23:00 -0400
 math: true
 description: "Analisis y explotacion de una implementacion RSA vulnerable donde los primos p y q estan correlacionado
