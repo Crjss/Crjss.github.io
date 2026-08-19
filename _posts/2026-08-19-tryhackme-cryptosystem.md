@@ -1,10 +1,10 @@
 ---
-title: "Cryptosystem"
+title: "Cryptosystem - TryHackMe"
 date: 2026-08-19 16:23:00 -0400
 math: true
 description: "Analisis y explotacion de una implementacion RSA vulnerable donde los primos p y q estan correlacionado
 s, permitiendo una factorizacion trivial mediante el metodo de Fermat."
-categories: [TryHackMe, Cyber Security 101]
+categories: [TryHackMe, Criptografia]
 tags: [RSA, Fermat Factorization, Cryptography, Python, Facil]
 ---
 
@@ -81,31 +81,38 @@ do el **Metodo de Factorizacion de Fermat**, un algoritmo que data del siglo XVI
 
 ## Fundamento Matematico: Factorizacion de Fermat
 
-El metodo de Fermat se basa en expresar un numero impar `n` como una diferencia de dos cuadrados:
+El metodo de Fermat se basa en expresar un numero impar $$n$$ como una diferencia de dos cuadrados:
 
 $$
 n = a^2 - b^2 = (a - b)(a + b)
 $$
 
 Donde:
-- `a = (p + q) / 2` (el punto medio entre `p` y `q`)
-- `b = (q - p) / 2` (la mitad de la distancia entre `p` y `q`)
 
-Si `p` y `q` estan cercanos, entonces `b` es un numero pequeno y podemos aproximar:
+$$
+a = \frac{p + q}{2} \quad \text{(punto medio entre $p$ y $q$)}
+$$
+
+$$
+b = \frac{q - p}{2} \quad \text{(mitad de la distancia entre $p$ y $q$)}
+$$
+
+Si $$p$$ y $$q$$ estan cercanos, entonces $$b$$ es un numero pequeno y podemos aproximar:
 
 $$
 a \approx \sqrt{n}
 $$
 
 El algoritmo consiste en:
-1. Calcular `a = ceil(sqrt(n))`.
-2. Verificar si `a^2 - n` es un **cuadrado perfecto**.
-3. Si lo es, hemos encontrado `b = sqrt(a^2 - n)`.
-4. Recuperar los factores: `p = a - b` y `q = a + b`.
-5. Si no lo es, incrementar `a` en 1 y repetir.
 
-> En este reto, la diferencia entre `p` y `q` resulto ser de solo **170**, lo que hizo que la factorizacion fuera pra
-cticamente inmediata (0 iteraciones adicionales despues de calcular `a = ceil(sqrt(n))`).
+1. Calcular $$a = \lceil\sqrt{n}\rceil$$.
+2. Verificar si $$a^2 - n$$ es un **cuadrado perfecto**.
+3. Si lo es, hemos encontrado $$b = \sqrt{a^2 - n}$$.
+4. Recuperar los factores: $$p = a - b$$ y $$q = a + b$$.
+5. Si no lo es, incrementar $$a$$ en 1 y repetir.
+
+> En este reto, la diferencia entre $$p$$ y $$q$$ resulto ser de solo **170**, lo que hizo que la factorizacion fuera
+ practicamente inmediata (0 iteraciones adicionales despues de calcular $$a = \lceil\sqrt{n}\rceil$$).
 {: .prompt-tip }
 
 ---
@@ -132,7 +139,7 @@ c = 3591116664311986976882299385598135447435246460706500887241769555088416359682
 e = 0x10001  # 65537 en decimal
 ```
 
-### Paso 2: Factorizar `n` con el metodo de Fermat
+### Paso 2: Factorizar $$n$$ con el metodo de Fermat
 
 Implementamos el ataque en Python:
 
@@ -177,12 +184,12 @@ while True:
 [+] q - p = 170
 ```
 
-Observamos que `q - p = 170`. Para primos de 1024 bits, esta distancia es insignificante, lo que confirma la vulnerab
-ilidad.
+Observamos que $$q - p = 170$$. Para primos de 1024 bits, esta distancia es insignificante, lo que confirma la vulner
+abilidad.
 
 ### Paso 3: Calcular la clave privada y descifrar
 
-Con `p` y `q` conocidos, procedemos con el flujo estandar de descifrado RSA:
+Con $$p$$ y $$q$$ conocidos, procedemos con el flujo estandar de descifrado RSA:
 
 ```python
 from Crypto.Util.number import long_to_bytes, inverse
@@ -322,4 +329,3 @@ THM{Just_s0m3_small_amount_of_RSA!}
 
 *Writeup redactado el 19 de agosto de 2026. Si encuentras algun error o tienes sugerencias, no dudes en dejar un come
 ntario.*
-
