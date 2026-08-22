@@ -379,7 +379,7 @@ print(f"\n[+] FLAG: {flag.decode()}")
 
 ### Recomendaciones para implementaciones seguras de RSA
 
-> 🛡️ **Recomendacion de seguridad:** Para generar claves RSA seguras, los primos $p$ y $q$ deben seleccionarse de manera **independiente, aleatoria y uniforme** dentro del rango de bits especificado. Nunca debe existir una relacion matematica, algoritmica o deterministica directa entre ambos primos. Ademas, es una buena practica verificar que $|p - q|$ sea suficientemente grande y que ambos primos pasen pruebas de primalidad robustas.
+> 🛡️ **Recomendacion de seguridad:** Para generar claves RSA seguras, los primos $p$ y $q$ deben seleccionarse de manera **independiente, aleatoria y uniforme** dentro del rango de bits especificado. Nunca debe existir una relacion matematica, algoritmica o deterministica directa entre ambos primos. Ademas, es una buena practica verificar que $\vert p - q \vert$ sea suficientemente grande y que ambos primos pasen pruebas de primalidad robustas.
 {: .prompt-warning }
 
 ### Retroalimentacion sobre la sala
